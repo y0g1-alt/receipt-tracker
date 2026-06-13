@@ -130,27 +130,32 @@ export default function ReceiptTracker() {
     setScanning(false);
   };
 
-  const saveEntry = () => {
+ const saveEntry = () => {
     if (!form.vendor || !form.amount || isNaN(parseFloat(form.amount))) {
       showToast("Please add a vendor and valid amount", "error");
       return;
     }
     const entry = { ...form, amount: parseFloat(form.amount), id: editingId || Date.now() };
+    let updated;
     if (editingId) {
-      setEntries((prev) => prev.map((e) => (e.id === editingId ? entry : e)));
+      updated = entries.map((e) => (e.id === editingId ? entry : e));
       setEditingId(null);
       showToast("Entry updated");
     } else {
-      setEntries((prev) => [entry, ...prev]);
+      updated = [entry, ...entries];
       showToast("Entry saved");
     }
+    setEntries(updated);
+    localStorage.setItem("receipt-tracker-entries", JSON.stringify(updated));
     setForm(emptyForm);
     setImagePreview(null);
     setImageBase64(null);
   };
 
   const deleteEntry = (id) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+    const updated = entries.filter((e) => e.id !== id);
+    setEntries(updated);
+    localStorage.setItem("receipt-tracker-entries", JSON.stringify(updated));
     showToast("Entry deleted");
   };
 

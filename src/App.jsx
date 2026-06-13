@@ -77,13 +77,6 @@ export default function ReceiptTracker() {
   const [editingId, setEditingId] = useState(null);
   const fileRef = useRef();
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("receipt-tracker-entries", JSON.stringify(entries));
-    } catch {
-      // storage full or unavailable
-    }
-  }, [entries]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });

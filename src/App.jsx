@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 const CATEGORIES = [
   "Groceries / Food at home",
@@ -36,6 +36,27 @@ const CURRENCY_SYMBOLS = {
 
 const today = () => new Date().toISOString().split("T")[0];
 
+const STORAGE_KEY = "receipt-tracker-entries";
+
+const loadEntries = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveEntries = (entries) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch {
+    console.error("Could not save to localStorage");
+  }
+};
+
 const emptyForm = {
   date: today(),
   vendor: "",
@@ -59,15 +80,7 @@ function callClaude(messages, systemPrompt) {
 }
 
 export default function ReceiptTracker() {
-  const [entries, setEntries] = useState(() => {
-    try {
-      const saved = localStorage.getItem("receipt-tracker-entries");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
+  const [entries, setEntries] = useState(loadEntries);
   const [form, setForm] = useState(emptyForm);
   const [view, setView] = useState("add");
   const [scanning, setScanning] = useState(false);
@@ -76,7 +89,6 @@ export default function ReceiptTracker() {
   const [toast, setToast] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const fileRef = useRef();
-
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -130,7 +142,7 @@ export default function ReceiptTracker() {
     setScanning(false);
   };
 
- const saveEntry = () => {
+  const saveEntry = () => {
     if (!form.vendor || !form.amount || isNaN(parseFloat(form.amount))) {
       showToast("Please add a vendor and valid amount", "error");
       return;
@@ -146,7 +158,7 @@ export default function ReceiptTracker() {
       showToast("Entry saved");
     }
     setEntries(updated);
-    localStorage.setItem("receipt-tracker-entries", JSON.stringify(updated));
+    saveEntries(updated);
     setForm(emptyForm);
     setImagePreview(null);
     setImageBase64(null);
@@ -155,7 +167,7 @@ export default function ReceiptTracker() {
   const deleteEntry = (id) => {
     const updated = entries.filter((e) => e.id !== id);
     setEntries(updated);
-    localStorage.setItem("receipt-tracker-entries", JSON.stringify(updated));
+    saveEntries(updated);
     showToast("Entry deleted");
   };
 

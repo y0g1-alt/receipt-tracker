@@ -59,7 +59,15 @@ function callClaude(messages, systemPrompt) {
 }
 
 export default function ReceiptTracker() {
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState(() => {
+    try {
+      const saved = localStorage.getItem("receipt-tracker-entries");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [form, setForm] = useState(emptyForm);
   const [view, setView] = useState("add");
   const [scanning, setScanning] = useState(false);
@@ -68,6 +76,14 @@ export default function ReceiptTracker() {
   const [toast, setToast] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const fileRef = useRef();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("receipt-tracker-entries", JSON.stringify(entries));
+    } catch {
+      // storage full or unavailable
+    }
+  }, [entries]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -91,23 +107,18 @@ export default function ReceiptTracker() {
     setScanning(true);
     try {
       const systemPrompt = `You are a receipt data extractor. Extract receipt details and return ONLY a JSON object with these exact keys: date (YYYY-MM-DD format, today if unclear), vendor (store/restaurant name), amount (number only, no currency symbol), currency (one of: ILS ₪, USD $, EUR €, GBP £, AUD $, CAD $), category (must be exactly one from this list: ${CATEGORIES.join(", ")}), notes (brief description of main items or empty string). Return only valid JSON, no other text.`;
-
       const data = await callClaude(
         [
           {
             role: "user",
             content: [
-              {
-                type: "image",
-                source: { type: "base64", media_type: "image/jpeg", data: imageBase64 },
-              },
+              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
               { type: "text", text: "Extract the receipt details from this image." },
             ],
           },
         ],
         systemPrompt
       );
-
       const text = data.content?.find((b) => b.type === "text")?.text || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
